@@ -1,0 +1,42 @@
+# PN (Positive-Negative) Baseline Experiment
+# Supervised learning with both positive and negative labeled data
+
+experiment:
+  name: "mnist_pn"
+  description: "PN baseline with 100 positive and 100 negative labeled samples"
+
+# Data configuration
+data:
+  dataset: "mnist"
+  n_positive: 100
+  n_negative: 100  # For PN, we have labeled negatives
+  positive_class_label: "even"  # Even digits (0,2,4,6,8)
+
+# Model configuration
+model:
+  architecture: "mlp6layer"
+  input_dim: 784
+  hidden_dims: [300, 300, 300, 300, 300]
+  output_dim: 1
+
+# Loss configuration
+loss:
+  type: "pn"
+  # No prior needed for supervised learning
+
+# Training configuration
+training:
+  batch_size: 256
+  epochs: 10
+  learning_rate: 0.001
+  optimizer: "adam"
+  device: "mps"  # Use MPS on M4 MacBook, fallback to CUDA/CPU
+
+# Reproducibility
+seed: 42
+
+# Logging
+logging:
+  log_interval: 2  # Log every N epochs
+  save_model: true
+  checkpoint_dir: "experiments/results/mnist_pn_test"

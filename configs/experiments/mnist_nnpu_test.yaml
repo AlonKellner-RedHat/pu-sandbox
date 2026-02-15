@@ -1,0 +1,33 @@
+# Quick test of nnPU (just 10 epochs for verification)
+experiment:
+  name: "mnist_nnpu_test"
+  description: "Quick nnPU test with 10 epochs"
+
+data:
+  dataset: "mnist"
+  n_positive: 100
+  positive_class_label: "even"
+
+model:
+  architecture: "mlp6layer"
+  input_dim: 784
+  hidden_dims: [300, 300, 300, 300, 300]
+  output_dim: 1
+
+loss:
+  type: "nnpu"
+  prior: 0.5
+
+training:
+  batch_size: 256
+  epochs: 10  # Just 10 epochs for testing
+  learning_rate: 0.001
+  optimizer: "adam"
+  device: "mps"
+
+seed: 42
+
+logging:
+  log_interval: 2  # Log every 2 epochs
+  save_model: true
+  checkpoint_dir: "experiments/results/mnist_nnpu_test"
