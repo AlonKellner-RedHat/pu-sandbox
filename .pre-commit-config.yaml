@@ -1,0 +1,111 @@
+# Pre-commit hooks for PU Learning research project
+# Uses system hooks with uvx for better integration with Astral.sh stack
+#
+# Install: uv run pre-commit install
+# Run manually: uv run pre-commit run --all-files
+# Update hooks: uv run pre-commit autoupdate
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-toml
+        name: Check TOML syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: [--maxkb=10000]  # 10MB limit
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: detect-private-key
+        name: Detect private keys
+      - id: mixed-line-ending
+        name: Check mixed line endings
+        args: [--fix=lf]
+
+  # Local system hooks using uvx (Astral.sh stack)
+  - repo: local
+    hooks:
+      # Ruff linter - Fast Python linter
+      # Includes PGH ruleset (replaces pygrep-hooks)
+      - id: ruff-check
+        name: Ruff linter
+        entry: uvx ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types: [python]
+        require_serial: false
+
+      # Ruff formatter - Fast Python formatter
+      - id: ruff-format
+        name: Ruff formatter
+        entry: uvx ruff format
+        language: system
+        types: [python]
+        require_serial: false
+
+      # Type checking with ty (Astral.sh) - currently disabled as ty is not yet released
+      # Uncomment when ty becomes available:
+      # - id: ty
+      #   name: Type check with ty
+      #   entry: uvx ty check
+      #   language: system
+      #   types: [python]
+      #   files: ^src/
+      #   require_serial: false
+
+      # Ensure uv.lock is up to date
+      - id: uv-sync-check
+        name: Check uv sync status
+        entry: uv sync --locked
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|uv\.lock)$
+
+      # Run tests with coverage (only on relevant file changes)
+      - id: pytest-cov
+        name: Run tests with coverage
+        entry: uv run pytest --cov=pu_learning --cov-report=term-missing --cov-fail-under=80 -v
+        language: system
+        pass_filenames: false
+        files: ^(src/|tests/).*\.py$
+        exclude: ^(docs/|\.github/|\.specify/)
+        stages: [pre-push]  # Only run on push, not on every commit
+
+  # Jupyter notebook checks (using uvx)
+  - repo: local
+    hooks:
+      - id: nbqa-ruff
+        name: Ruff on Jupyter notebooks
+        entry: uvx nbqa ruff --fix
+        language: system
+        types: [jupyter]
+        require_serial: false
+
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: ^(\.secrets\.baseline|uv\.lock)$
+
+# Configuration
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
+# Fast fail - stop on first failure
+fail_fast: false
+
+# Minimum pre-commit version
+minimum_pre_commit_version: 3.5.0
