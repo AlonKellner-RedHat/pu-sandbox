@@ -89,15 +89,17 @@ pu-sandbox/
 
 ## Current Status
 
-✅ **Phase 1-3 Complete**:
-- Spec-kit workflow setup (constitution, specification, plan, tasks)
-- Core utilities (MPS device selection, reproducibility)
-- MNIST PU dataset with comprehensive tests (30 passing tests, 80% coverage)
+✅ **All Core Phases Complete (1-8)**:
+- ✅ **Phase 1-3**: Foundation (spec-kit workflow, core utilities, MNIST PU dataset)
+- ✅ **Phase 4**: Model Architecture (6-layer MLP with 597K parameters)
+- ✅ **Phase 5**: Loss Functions (PN, uPU, nnPU with mathematical correctness)
+- ✅ **Phase 6**: Training Pipeline (trainer, metrics, checkpoints)
+- ✅ **Phase 7**: Experiment Configurations (YAML configs, training scripts)
+- ✅ **Phase 8**: Interactive Visualization (hvPlot + HoloViews + Bokeh)
 
-🚧 **Next Phases**:
-- Phase 4: Model Architecture (6-layer MLP)
-- Phase 5: Loss Functions (PN, uPU, nnPU)
-- Phase 6: Training Pipeline
+**Testing**: 76 tests passing (53 unit + 14 metrics + 9 integration), >80% coverage
+
+🎯 **Ready**: Full nnPU paper reproduction pipeline is functional and tested!
 
 ## Technology Stack
 
@@ -105,17 +107,69 @@ pu-sandbox/
 - **PyTorch 2.10.0**: Deep learning with MPS acceleration
 - **torchvision**: MNIST dataset
 - **NumPy**: Numerical operations
+- **PyYAML**: Configuration management
 
-### Visualization
+### Visualization (HoloViz Stack)
 - **hvPlot**: High-level interactive plotting
 - **HoloViews**: Declarative visualizations
 - **Bokeh**: Interactive visualization backend
+- **Pandas**: Data manipulation for analysis
 
 ### Code Quality (Astral.sh Stack)
 - **uv**: Fast package management
 - **ruff**: Linting and formatting
-- **pytest**: Testing framework
+- **pytest**: Testing framework (76 tests passing)
 - **pre-commit**: Automated quality checks
+
+## Implementation Details
+
+### Model Architecture
+- **MLP6Layer**: [784 → 300 → 300 → 300 → 300 → 300 → 1]
+- **Activations**: ReLU (hidden), Sigmoid (output)
+- **Parameters**: 597,001
+- **Initialization**: Kaiming (He) for ReLU layers
+
+### Loss Functions
+
+All loss functions implement the exact formulations from the nnPU paper:
+
+**PN (Supervised Baseline)**:
+```
+L_PN = E_P[BCE(f(x), 1)] + E_N[BCE(f(x), 0)]
+```
+
+**uPU (Unbiased PU)**:
+```
+L_uPU = π·E_P[l(f(x))] + E_U[l(-f(x))] - π·E_P[l(-f(x))]
+```
+- Can produce negative risk (may lead to overfitting)
+
+**nnPU (Non-Negative PU)** - Key Contribution:
+```
+L_nnPU = π·E_P[l(f(x))] + max(0, E_U[l(-f(x))] - π·E_P[l(-f(x))])
+```
+- Always non-negative (assertion enforced in code)
+- Prevents overfitting to negative risk
+
+Where:
+- `π` = class prior P(y=1) ≈ 0.5 for even/odd split
+- `l(z)` = sigmoid loss = log(1 + exp(-z))
+- `P` = positive labeled samples (100)
+- `U` = unlabeled samples (~59,900)
+
+### Dataset Configuration
+- **Positive class**: Even digits (0, 2, 4, 6, 8)
+- **Negative class**: Odd digits (1, 3, 5, 7, 9)
+- **Labeled positive**: 100 samples
+- **Unlabeled**: ~59,900 samples (contains both positive and negative)
+- **Class prior π**: ~0.49 (approximately balanced)
+
+### Training Configuration
+- **Optimizer**: Adam
+- **Learning rate**: 0.001
+- **Batch size**: 256
+- **Epochs**: 100 (10 for quick tests)
+- **Device**: MPS (Metal) > CUDA > CPU
 
 ## Reproducibility
 
@@ -135,6 +189,79 @@ just test-file <path>  # Specific test file
 ```
 
 Current coverage: **80%** (exceeds 80% threshold)
+
+## Running Experiments
+
+### Quick Test (10 epochs)
+
+Run all three methods with 2 seeds (fast verification):
+```bash
+python experiments/scripts/run_all.py --seeds 42 43 --quick
+```
+
+### Full Experiments (100 epochs)
+
+Run complete reproduction experiments with 5 seeds:
+```bash
+python experiments/scripts/run_all.py --seeds 42 43 44 45 46
+```
+
+### Single Method
+
+Run a specific method:
+```bash
+# nnPU (recommended)
+python experiments/scripts/train.py --config configs/experiments/mnist_nnpu.yaml
+
+# uPU (unbiased)
+python experiments/scripts/train.py --config configs/experiments/mnist_upu.yaml
+
+# PN (baseline)
+python experiments/scripts/train.py --config configs/experiments/mnist_pn.yaml
+```
+
+### Custom Seed
+
+Override the config seed:
+```bash
+python experiments/scripts/train.py --config configs/experiments/mnist_nnpu.yaml --seed 99
+```
+
+## Analyzing Results
+
+### Generate Summary Statistics
+
+```bash
+python experiments/scripts/analyze_results.py experiments/results
+```
+
+### Export Interactive Visualizations
+
+Generate HTML plots with hvPlot + HoloViews + Bokeh:
+```bash
+python experiments/scripts/analyze_results.py experiments/results --export
+```
+
+This creates:
+- `training_loss.html`: Training loss curves
+- `test_loss.html`: Test loss curves
+- `test_error.html`: Test error (zero-one loss) curves
+- `test_accuracy.html`: Test accuracy curves
+- `final_performance.html`: Bar chart comparing final performance
+- `comparison_dashboard.html`: Complete dashboard with all metrics
+
+### View Results
+
+Open any HTML file in your browser for interactive exploration:
+```bash
+open experiments/results/plots/comparison_dashboard.html
+```
+
+Features:
+- **Hover tooltips** with exact values
+- **Pan and zoom** to explore specific regions
+- **Toggleable legends** to show/hide methods
+- **Mean ± std** visualization across multiple seeds
 
 ## Contributing
 

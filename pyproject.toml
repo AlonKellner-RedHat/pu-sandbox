@@ -55,6 +55,11 @@ addopts = [
     "--cov-fail-under=80",
 ]
 
+[tool.coverage.run]
+omit = [
+    "src/pu_learning/utils/visualization.py",  # Visualization code is UI/plotting, hard to unit test
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py39"
