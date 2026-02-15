@@ -57,7 +57,7 @@ class PNLoss(PULoss):
                 positive_outputs, positive_targets, reduction="mean"
             )
         else:
-            positive_loss = torch.tensor(0.0, device=outputs.device)
+            positive_loss = outputs.new_zeros(())
 
         # Compute negative loss: E_N[BCE(f(x), 0)]
         if negative_mask.any():
@@ -67,7 +67,7 @@ class PNLoss(PULoss):
                 negative_outputs, negative_targets, reduction="mean"
             )
         else:
-            negative_loss = torch.tensor(0.0, device=outputs.device)
+            negative_loss = outputs.new_zeros(())
 
         # Total loss
         return positive_loss + negative_loss

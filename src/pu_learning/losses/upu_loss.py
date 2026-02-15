@@ -73,21 +73,21 @@ class uPULoss(PULoss):  # noqa: N801
             # l(f(x)) = -log(sigmoid(f(x))) = -log(p(x))
             positive_risk = -torch.log(positive_outputs + eps).mean()
         else:
-            positive_risk = torch.tensor(0.0, device=outputs.device)
+            positive_risk = outputs.new_zeros(())
 
         # Term 2: E_U[l(-f(x))] - unlabeled negative risk
         if unlabeled_mask.any():
             # l(-f(x)) = -log(sigmoid(-f(x))) = -log(1 - p(x))
             unlabeled_negative_risk = -torch.log(1 - unlabeled_outputs + eps).mean()
         else:
-            unlabeled_negative_risk = torch.tensor(0.0, device=outputs.device)
+            unlabeled_negative_risk = outputs.new_zeros(())
 
         # Term 3: π·E_P[l(-f(x))] - correction term for negative risk
         if positive_mask.any():
             # l(-f(x)) for positive samples
             positive_negative_risk = -torch.log(1 - positive_outputs + eps).mean()
         else:
-            positive_negative_risk = torch.tensor(0.0, device=outputs.device)
+            positive_negative_risk = outputs.new_zeros(())
 
         # Combine terms: π·E_P[l(f(x))] + E_U[l(-f(x))] - π·E_P[l(-f(x))]
         loss = (
