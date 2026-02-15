@@ -84,9 +84,23 @@ ignore = [
     "E501",   # line too long (handled by formatter)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Jupyter notebooks have different conventions
+"*.ipynb" = [
+    "E402",   # Module level import not at top of file
+    "F821",   # Undefined name (display, get_ipython, etc.)
+    "B018",   # Useless expression (intentional for cell output)
+]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[dependency-groups]
+dev = [
+    "nbqa>=1.9.1",
+    "ruff>=0.15.1",
+]
 
 # Type checking configuration for ty (Astral.sh)
 # Note: ty is not yet released - configuration will be added when available

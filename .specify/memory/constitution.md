@@ -220,7 +220,6 @@ class nnPULoss(PULoss):
 - **No Secrets**: Never commit .env, credentials, API keys, or sensitive data
 - **Pre-Commit Hooks**: Always run and pass pre-commit hooks before committing
 - **NEVER Bypass Hooks**: NEVER use `--no-verify` flag with git commit or git push - this defeats the purpose of quality checks
-- **Verify All Files**: Run `pre-commit run --all-files` to verify all hooks pass on entire codebase
 - **Branch Protection**: Work on feature branches, merge to main after review (when team grows)
 
 **Hook Installation:**

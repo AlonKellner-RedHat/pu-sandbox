@@ -81,12 +81,12 @@ repos:
         exclude: ^(docs/|\.github/|\.specify/)
         stages: [pre-push]  # Only run on push, not on every commit
 
-  # Jupyter notebook checks (using uvx)
+  # Jupyter notebook checks (using project environment)
   - repo: local
     hooks:
       - id: nbqa-ruff
         name: Ruff on Jupyter notebooks
-        entry: uvx nbqa ruff --fix
+        entry: uv run nbqa ruff --fix --ignore=E402,F821,B018
         language: system
         types: [jupyter]
         require_serial: false
