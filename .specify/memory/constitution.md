@@ -129,6 +129,10 @@ Follow strict TDD methodology for all implementation:
   - Will enable when ty becomes available
 - **pytest-cov**: Code coverage reporting
 - **pre-commit**: Automated code quality checks (ruff, ty, pytest, secrets detection)
+- **just**: Command runner for workflow automation (https://github.com/casey/just)
+  - Use `just p` to quickly verify pre-commit hooks
+  - Use `just test`, `just lint`, `just format` for common development tasks
+  - Install with: `brew install just` (macOS) or `cargo install just`
 - **Type hints**: All function signatures have type annotations (ready for ty)
 - **Docstrings**: Google-style docstrings for all public functions/classes
 
@@ -222,6 +226,23 @@ class nnPULoss(PULoss):
 - Hooks will automatically fix issues where possible (ruff, trailing whitespace, etc.)
 - If hooks fail, fix issues and re-commit (hooks already applied auto-fixes)
 
+**Quick Workflow Commands (using just):**
+- **Verify Pre-Commit Hooks**: Use `just p` (or `just pre-commit`) frequently to:
+  - Stage all changes with `git add -A`
+  - Run pre-commit hooks to verify code quality
+  - See auto-fixes applied by hooks (ruff, trailing whitespace, etc.)
+- **When to Use `just p`**:
+  - After making code changes, before committing
+  - Multiple times during development to catch issues early
+  - Before taking a break or switching tasks
+  - As a quick sanity check that code meets quality standards
+- **Other Useful Commands**:
+  - `just test`: Run tests with coverage
+  - `just lint`: Run ruff linter
+  - `just format`: Run ruff formatter
+  - `just all`: Full workflow (format, lint, test, pre-commit)
+  - `just --list`: Show all available commands
+
 ## Governance
 
 ### Constitution Supremacy
@@ -248,9 +269,10 @@ class nnPULoss(PULoss):
 
 ---
 
-**Version**: 1.2.0 | **Ratified**: 2026-02-15 | **Last Amended**: 2026-02-15
+**Version**: 1.3.0 | **Ratified**: 2026-02-15 | **Last Amended**: 2026-02-15
 
 **Amendment History**:
+- **v1.3.0** (2026-02-15): Added `just` command runner for workflow automation, added `just p` quick command for pre-commit verification, documented workflow commands in Git Workflow section
 - **v1.2.0** (2026-02-15): Expanded Git Workflow with "commit early, commit often" guidance, push frequency requirements, detailed commit message format, and hook installation instructions
 - **v1.1.0** (2026-02-15): Added Test-Driven Development (TDD) as Principle VI, enforced Astral.sh stack (uv, ruff, ty only), added pre-commit hooks
 - **v1.0.0** (2026-02-15): Initial constitution with core principles
