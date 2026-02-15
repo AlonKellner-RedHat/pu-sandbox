@@ -188,11 +188,39 @@ class nnPULoss(PULoss):
 4. **Analysis**: Analyze results in interactive notebooks
 5. **Documentation**: Document findings and update README
 
-### Git Workflow
-- **Meaningful Commits**: Each commit represents a logical unit of work
-- **Co-Authoring**: All commits co-authored with Claude Code
+### Git Workflow - NON-NEGOTIABLE
+**Commit Early, Commit Often:**
+- **Frequent Commits**: Commit after completing each logical unit of work (feature, bug fix, refactor)
+- **After TDD Cycle**: Commit after completing RED-GREEN-REFACTOR cycle with passing tests
+- **After Pre-Commit**: Only commit when all pre-commit hooks pass
+- **Atomic Commits**: Each commit should be self-contained and buildable
+- **Commit Size**: Prefer smaller, focused commits over large monolithic ones
+
+**Commit Messages:**
+- **Meaningful**: Clearly describe what changed and why
+- **Format**: Imperative mood, present tense (e.g., "Add", "Fix", "Update", not "Added", "Fixed")
+- **Detail**: First line: brief summary (<70 chars); body: detailed explanation if needed
+- **Co-Authoring**: All commits must include co-authoring with Claude Code:
+  ```
+  Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+  ```
+
+**Push Frequently:**
+- **After Each Commit**: Push to remote after committing to avoid losing work
+- **Multiple Times Per Session**: Push at least after each major feature/phase completion
+- **Before Context Switch**: Always push before taking a break or switching tasks
+
+**Git Best Practices:**
 - **Clean History**: No merge commits, rebase if needed
-- **No Secrets**: Never commit .env, credentials, or API keys
+- **No Force Push**: Never force push to main/master branch
+- **No Secrets**: Never commit .env, credentials, API keys, or sensitive data
+- **Pre-Commit Hooks**: Always run and pass pre-commit hooks before committing
+- **Branch Protection**: Work on feature branches, merge to main after review (when team grows)
+
+**Hook Installation:**
+- Install pre-commit hooks with: `uvx pre-commit install --install-hooks`
+- Hooks will automatically fix issues where possible (ruff, trailing whitespace, etc.)
+- If hooks fail, fix issues and re-commit (hooks already applied auto-fixes)
 
 ## Governance
 
@@ -220,8 +248,9 @@ class nnPULoss(PULoss):
 
 ---
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-15 | **Last Amended**: 2026-02-15
+**Version**: 1.2.0 | **Ratified**: 2026-02-15 | **Last Amended**: 2026-02-15
 
 **Amendment History**:
+- **v1.2.0** (2026-02-15): Expanded Git Workflow with "commit early, commit often" guidance, push frequency requirements, detailed commit message format, and hook installation instructions
 - **v1.1.0** (2026-02-15): Added Test-Driven Development (TDD) as Principle VI, enforced Astral.sh stack (uv, ruff, ty only), added pre-commit hooks
 - **v1.0.0** (2026-02-15): Initial constitution with core principles
