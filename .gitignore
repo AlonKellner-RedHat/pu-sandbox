@@ -75,3 +75,8 @@ Thumbs.db
 dmypy.json
 .pytype/
 notebooks/data/
+
+# Analysis artifacts (from nnPU reproduction analysis feature)
+analysis/paper-source/
+analysis/reference-implementations/
+analysis/baseline-results/
