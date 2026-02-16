@@ -61,7 +61,195 @@ Summary table of all discrepancies sorted by severity:
 
 Discrepancies in loss function formulations and mathematical operations.
 
-*This section will be populated during User Story 1 (Phase 3).*
+---
+
+### DISC-001: PN Loss Missing Prior Weighting
+
+**Category**: Mathematical
+**Severity**: High
+**Component**: `src/pu_learning/losses/pn_loss.py:PNLoss.forward:73`
+**Status**: NotStarted
+
+#### Description
+
+The PN loss implementation does not weight the positive and negative risks by their class priors (π_p and π_n). It simply sums the two risk components without weighting.
+
+#### Expected Behavior
+
+**Source**: Paper pu_nnre.tex, Line 141, Equation `eq:risk-pn-hat`
+
+**Specification**:
+```
+\hRpn(g) = π_p * \hRp^+(g) + π_n * \hRn^-(g)
+```
+
+Where:
+- π_p = Prior probability of positive class
+- π_n = Prior probability of negative class (π_n = 1 - π_p)
+- \hRp^+(g) = (1/N_p) * Σ ℓ(g(x_p_i), +1)
+- \hRn^-(g) = (1/N_n) * Σ ℓ(g(x_n_i), -1)
+
+**Reference Implementations**:
+- kiryor: [TBD - needs review]
+- cimeister: [TBD - needs review]
+
+#### Actual Behavior
+
+**Current Code**: `src/pu_learning/losses/pn_loss.py:73`
+
+**Implementation**:
+```python
+# Total loss
+return positive_loss + negative_loss
+```
+
+The current implementation computes:
+```
+L_PN = E_P[BCE(f(x), 1)] + E_N[BCE(f(x), 0)]
+```
+
+But should compute:
+```
+L_PN = π_p * E_P[BCE(f(x), 1)] + π_n * E_N[BCE(f(x), 0)]
+```
+
+#### Impact
+
+**Expected Impact**:
+- For balanced datasets (π_p ≈ 0.5): Minimal impact (~1-2% test error change)
+- For imbalanced datasets: High impact (>5% degradation possible)
+- MNIST even/odd has π_p ≈ 0.5, so impact should be Low-Medium
+
+**Measured Impact**: [Will be filled after baseline experiments]
+
+#### Proposed Fix
+
+**Changes Required**:
+```python
+# File: src/pu_learning/losses/pn_loss.py
+
+# In __init__, accept prior parameter
+def __init__(self, prior: float = 0.5) -> None:
+    """Initialize PN loss.
+
+    Args:
+        prior: Class prior π_p = P(y=1). Defaults to 0.5 (balanced).
+    """
+    super().__init__(prior=prior)
+
+# In forward, apply prior weighting
+def forward(self, outputs, labels, is_labeled) -> torch.Tensor:
+    # ... existing code to compute positive_loss and negative_loss ...
+
+    # Apply prior weighting
+    pi_p = self.prior
+    pi_n = 1.0 - self.prior
+
+    return pi_p * positive_loss + pi_n * negative_loss
+```
+
+#### Related Discrepancies
+
+None currently identified.
+
+---
+
+### DISC-002: nnPU Loss May Have Gradient Flow Issue in Max Operation
+
+**Category**: Mathematical
+**Severity**: Critical
+**Component**: `src/pu_learning/losses/nnpu_loss.py:nnPULoss.forward:94-97`
+**Status**: NotStarted
+
+#### Description
+
+The nnPU loss uses `torch.clamp(negative_risk, min=0.0)` to implement the max(0, ...) operation. This may allow gradients to flow through the comparison, which could violate the paper's intent for the non-negative correction. The paper discussion suggests that when risk goes negative, gradient should not flow through the max operation.
+
+#### Expected Behavior
+
+**Source**: Paper pu_nnre.tex, Line 223, Equation `eq:risk-pu-tilde`
+
+**Specification**:
+```
+\tRpu(g) = π_p * \hRp^+(g) + max{0, \hRu^-(g) - π_p * \hRp^-(g)}
+```
+
+**Gradient Behavior** (inferred from paper discussion and standard practice):
+When the negative risk term goes below 0, gradients should NOT flow through the max operation. This typically requires:
+1. Detaching the comparison term before checking if < 0
+2. Using a conditional with `.detach()` rather than `torch.clamp`
+
+**Reference Implementations**:
+- kiryor: [TBD - needs review of gradient handling]
+- cimeister: [TBD - needs review of gradient handling]
+
+#### Actual Behavior
+
+**Current Code**: `src/pu_learning/losses/nnpu_loss.py:94-97`
+
+**Implementation**:
+```python
+# Compute the unlabeled negative risk with correction
+# This term can be negative in uPU, but we clamp to 0 in nnPU
+negative_risk = unlabeled_negative_risk - self.prior * positive_negative_risk
+
+# nnPU: Apply max(0, ...) to negative risk term (KEY DIFFERENCE from uPU)
+negative_risk_clamped = torch.clamp(negative_risk, min=0.0)
+```
+
+Using `torch.clamp` allows gradient flow in both directions:
+- When `negative_risk >= 0`: gradient flows normally
+- When `negative_risk < 0`: gradient is **zeroed** (derivative of clamp at boundary = 0)
+
+This might be correct, but paper implementation often uses explicit detach:
+```python
+if negative_risk.detach() < 0:
+    negative_risk_clamped = -self.beta * negative_risk.detach()  # or just 0
+else:
+    negative_risk_clamped = negative_risk
+```
+
+#### Impact
+
+**Expected Impact**:
+- **Critical** if gradient flow causes instability or prevents convergence
+- Could explain why nnPU might not converge within 100 epochs
+- Could cause loss to become negative despite assertion (though assertion would catch this)
+
+**Measured Impact**: [Will be filled after baseline experiments - check if nnPU converges]
+
+#### Proposed Fix
+
+**Option 1: Use detached comparison (conservative approach)**:
+```python
+# File: src/pu_learning/losses/nnpu_loss.py:94-100
+
+# Compute the unlabeled negative risk with correction
+negative_risk = unlabeled_negative_risk - self.prior * positive_negative_risk
+
+# nnPU: Apply max(0, ...) with detached comparison
+if negative_risk.detach().item() < 0:
+    # When negative, use detached value multiplied by -beta (or just 0 if beta=0)
+    # Gradients do NOT flow through this branch
+    negative_risk_clamped = torch.zeros_like(negative_risk)
+else:
+    # When positive, gradients flow normally
+    negative_risk_clamped = negative_risk
+
+# Final loss
+loss = self.prior * positive_risk + negative_risk_clamped
+```
+
+**Option 2: Current clamp approach may be correct**:
+- Need to verify with reference implementations
+- `torch.clamp` gradient behavior might be intentional
+- Defer decision until reference review (T017-T018)
+
+#### Related Discrepancies
+
+May relate to convergence issues if they exist (to be identified in T012 baseline analysis).
+
+---
 
 ### Structure for Each Discrepancy
 
